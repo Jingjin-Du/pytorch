@@ -3,6 +3,7 @@ import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 #加载数据
 transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -58,11 +59,17 @@ class Net(nn.Module):
         return x
 net = Net()
 
+#使用GPU
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+net.to(device)
+
 #定义损失函数与优化器
 import torch.optim as optim
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+
+start = time.time()
 
 #开始训练
 for epoch in range(2):  # loop over the dataset multiple times
@@ -71,6 +78,9 @@ for epoch in range(2):  # loop over the dataset multiple times
     for i, data in enumerate(trainloader, 0):
         # get the inputs
         inputs, labels = data
+
+        #使用GPU
+        inputs, labels = inputs.to(device), labels.to(device)
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -88,9 +98,11 @@ for epoch in range(2):  # loop over the dataset multiple times
                   (epoch + 1, i + 1, running_loss / 2000))
             running_loss = 0.0
 
-print('Finished Training')
+end = time.time()
+print('Finished Training, totally cost', end-start, 's')
 
 #测试之前的图片
+images = images.to(device)
 output = net(images)
 _, predicted = torch.max(outputs, 1)
 
@@ -103,6 +115,8 @@ total = 0
 with torch.no_grad():
     for data in testloader:
         images, labels = data
+        #使用GPU
+        images, labels = images.to(device), labels.to(device)
         outputs = net(images)
         _, predicted = torch.max(outputs.data, 1)
         total += labels.size(0)
@@ -118,6 +132,8 @@ class_total = list(0. for i in range(10))
 with torch.no_grad():
     for data in testloader:
         images, labels = data
+        #使用GPU
+        images, labels = images.to(device), labels.to(device)
         outputs = net(images)
         _, predicted = torch.max(outputs, 1)
         c = (predicted == labels).squeeze()
